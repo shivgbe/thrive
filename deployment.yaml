@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-node-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hello-node-app
+  template:
+    metadata:
+      labels:
+        app: hello-node-app
+    spec:
+      containers:
+      - name: hello-node-app
+        image: <your-account-id>.dkr.ecr.us-east-1.amazonaws.com/hello-node-app:latest
+        ports:
+          - containerPort: 3000
+        env:
+          - name: AWS_REGION
+            value: "us-east-1"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-node-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: hello-node-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000

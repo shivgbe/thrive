@@ -1,0 +1,40 @@
+name: Deploy to EKS
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Configure AWS
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Login to ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build Docker image
+      run: |
+        docker build -t hello-node-app ./app
+        docker tag hello-node-app:latest ${{ steps.login-ecr.outputs.registry }}/hello-node-app:latest
+
+    - name: Push Docker image
+      run: |
+        docker push ${{ steps.login-ecr.outputs.registry }}/hello-node-app:latest
+
+    - name: Configure kubectl
+      run: |
+        aws eks update-kubeconfig --name takehome-eks-cluster --region us-east-1
+
+    - name: Deploy to EKS
+      run: |
+        kubectl apply -f deployment.yaml
